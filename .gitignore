@@ -1,0 +1,37 @@
+# build scratch
+BUILD_SETUP_NEXT_STEPS.md
+PUBLISH_BLOCKED.md
+DRIFT_REPORT.md
+GIT_AUTHOR_DRIFT.md
+.build_metadata*
+.builder_*
+.builder_prompt*
+.stage_*
+.spawn_*
+_spawn_*
+_build_ctx.json
+build_workflow.js
+
+# editor / agent scratch
+.claude/
+CLAUDE.md
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Go
+/invary
+/bin/
+/dist/
+*.test
+*.out
+coverage.txt
+profile.out
+
+# demo render scratch
+/assets/demo.tmp.gif

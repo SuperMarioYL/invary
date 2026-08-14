@@ -1,0 +1,25 @@
+{
+  "id": "chatcmpl-kimi-001",
+  "object": "chat.completion",
+  "model": "moonshot-v1-8k",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": null,
+        "tool_calls": [
+          {
+            "id": "call_kimi_001",
+            "type": "function",
+            "function": {
+              "name": "get_weather",
+              "arguments": "{'location': 'Tokyo', 'unit': 'celsius'}"
+            }
+          }
+        ]
+      },
+      "finish_reason": "tool_calls"
+    }
+  ]
+}
