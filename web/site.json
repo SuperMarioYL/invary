@@ -1,0 +1,74 @@
+{
+  "schema": 1,
+  "name": "invary",
+  "github": "https://github.com/SuperMarioYL/invary",
+  "host": "invary.lei6393.com",
+  "lang": { "primary": "zh", "toggle": true },
+  "accent": ["#0071E3", "#4d9bff", "#34e5d0"],
+  "hero": {
+    "eyebrow": { "zh": "本地 · 无账号 · 单二进制", "en": "Local · No account · Single binary" },
+    "headline": {
+      "zh": "换模型之前\n先看清谁会静默崩掉",
+      "en": "Before you switch models\nsee which one silently breaks"
+    },
+    "sub": {
+      "zh": "同一份 prompt + 工具 schema 跑过四个国产模型，立刻报告谁违反了工具调用契约——不需要学习型预言机，你写的不变量就是标准。",
+      "en": "Run the same prompt + tool schema across four Chinese models and instantly see which one silently violates the tool-call contract — no learned oracle needed, your invariants are the ground truth."
+    },
+    "command": "invary check --trace trace.json --schema schema.json"
+  },
+  "advantages": [
+    {
+      "title": {
+        "zh": "一眼看到哪个模型违约",
+        "en": "See which model breaks at a glance"
+      },
+      "body": {
+        "zh": "同一份轨迹 + schema 喂给四个不变量检查器，逐条输出通过/失败和最小证据。不需要跑完全部才知道——哪条挂了、挂在哪个模型上一目了然。",
+        "en": "Feed one trace + schema to four invariant checkers and get per-check pass/fail with minimal evidence. No need to run everything first — which check failed and on which model is visible immediately."
+      },
+      "chips": [
+        "› valid_json / required_fields / arg_types / no_schema_drift",
+        "› DeepSeek · Qwen · Kimi · GLM"
+      ]
+    },
+    {
+      "title": {
+        "zh": "你的不变量就是标准",
+        "en": "Your invariants are the standard"
+      },
+      "body": {
+        "zh": "不需要训练预言机或收集标注数据——你写的不变量规则就是 ground truth。简单、确定、可审计。",
+        "en": "No need to train an oracle or collect labeled data — the invariant rules you write ARE the ground truth. Simple, deterministic, auditable."
+      },
+      "chips": [
+        "› 零学习型预言机",
+        "› 纯规则，纯确定性"
+      ]
+    },
+    {
+      "title": {
+        "zh": "一条命令，无需 API key",
+        "en": "One command, no API key"
+      },
+      "body": {
+        "zh": "m1 只评估保存好的轨迹文件，不需要联网，不需要账号。CI 里也能跑——切了模型就跑一遍，挂了就挡住合并。",
+        "en": "m1 evaluates saved trace files only — no network, no account needed. Runs in CI too: switch a model, run it, and block the merge if it fails."
+      },
+      "chips": [
+        "› go run . check",
+        "› CI 集成就绪"
+      ]
+    }
+  ],
+  "scene": {
+    "kind": "hub-nodes",
+    "nodes": ["DeepSeek", "Qwen", "Kimi", "GLM"]
+  },
+  "footer": {
+    "tag": {
+      "zh": "MIT 开源 · 把模型替换从盲赌变成可度量的决策",
+      "en": "MIT open source · Turn model substitution from blind gambling into a measurable decision"
+    }
+  }
+}
