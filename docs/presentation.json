@@ -1,0 +1,78 @@
+{
+  "name": "invary",
+  "tagline": "Find tool-call contract breaks in saved responses.",
+  "architecture": {
+    "title": "How Invary works",
+    "nodes": [
+      {
+        "title": "Trace + schema",
+        "detail": "cmd/check.go"
+      },
+      {
+        "title": "Schema parser",
+        "detail": "internal/invariant"
+      },
+      {
+        "title": "Four invariants",
+        "detail": "internal/invariant/checks.go"
+      },
+      {
+        "title": "Evidence table",
+        "detail": "CLI stdout and exit code"
+      }
+    ],
+    "edges": [
+      [
+        0,
+        1
+      ],
+      [
+        1,
+        2
+      ],
+      [
+        2,
+        3
+      ]
+    ]
+  },
+  "process": {
+    "title": "From input to a useful result",
+    "steps": [
+      {
+        "title": "Load examples",
+        "detail": "Trace plus schema"
+      },
+      {
+        "title": "Evaluate rules",
+        "detail": "Four invariant results"
+      },
+      {
+        "title": "Inspect breach",
+        "detail": "Unexpected timezone field"
+      }
+    ],
+    "result": "One fixture passes all four checks; the other fails no_schema_drift on the extra timezone field."
+  },
+  "integrations": {
+    "title": "Supported input and output routes",
+    "items": [
+      {
+        "title": "Captured JSON",
+        "detail": "Full response or tool-call object"
+      },
+      {
+        "title": "Tool schema",
+        "detail": "Declared properties and required fields"
+      },
+      {
+        "title": "Terminal report",
+        "detail": "Rule verdicts and evidence"
+      },
+      {
+        "title": "Exit status",
+        "detail": "Pipeline failure signal"
+      }
+    ]
+  }
+}

@@ -1,137 +1,145 @@
-<div align="right"><sub><b>English</b>&nbsp;&nbsp;⇄&nbsp;&nbsp;<a href="./README.md">简体中文</a></sub></div>
+[简体中文](./README.md) · [Website](https://invary.lei6393.com) · [GitHub](https://github.com/SuperMarioYL/invary)
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="./assets/hero-dark.svg">
-  <source media="(prefers-color-scheme: light)" srcset="./assets/hero-light.svg">
-  <img src="./assets/hero-light.svg" width="880" alt="Invary — which CN model silently breaks the tool-call contract">
+  <source media="(max-width: 600px) and (prefers-color-scheme: dark)" srcset="./assets/presentation/hero-mobile-dark.svg">
+  <source media="(max-width: 600px)" srcset="./assets/presentation/hero-mobile-light.svg">
+  <source media="(prefers-color-scheme: dark)" srcset="./assets/presentation/hero-dark.svg">
+  <img src="./assets/presentation/hero-light.svg" width="960" alt="Hero diagram">
 </picture>
 
-<p align="center"><sub>Invary is the differential tester that flags which CN model silently breaks a tool-call contract.</sub></p>
+# invary
 
-<p align="center">
-  <a href="./LICENSE"><img src="https://img.shields.io/github/license/SuperMarioYL/invary?label=license&color=0071E3" alt="License"></a>
-  &nbsp;<img src="https://img.shields.io/github/v/release/SuperMarioYL/invary?label=release&color=0071E3" alt="Release">
-  &nbsp;<img src="https://img.shields.io/github/actions/workflow/status/SuperMarioYL/invary/ci.yml?branch=main&label=CI" alt="CI">
-  &nbsp;<img src="https://img.shields.io/badge/Go-1.24-0071E3?logo=go&logoColor=white" alt="Go">
-</p>
+**Find tool-call contract breaks in saved responses.**
 
-**Turn a blind model swap into a measured decision — run one prompt + tool schema across four CN models and see who silently breaks.**
+Invary checks a captured tool call against four explicit invariants and reports the failing evidence locally.
 
-<h2><img src="https://api.iconify.design/tabler:topology-star-3.svg?color=%230071E3&width=24" height="22" align="absmiddle" alt=""> Architecture</h2>
+## Why use it
+
+A response can look plausible yet omit a required argument, use the wrong type, or invent a field. A saved response and tool schema make these failures reproducible without another model request.
+
+- **Offline reproduction** — A saved trace and schema are sufficient.
+- **Specific failure evidence** — Each invariant names the violated contract.
+- **Scriptable gate** — Failed checks return a nonzero status.
+
+## Architecture
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="./assets/atlas-dark.svg">
-  <source media="(prefers-color-scheme: light)" srcset="./assets/atlas-light.svg">
-  <img src="./assets/atlas-light.svg" width="880" alt="Architecture: Trace and Schema to Invariant Eval to Pass/Fail Report">
+  <source media="(max-width: 600px) and (prefers-color-scheme: dark)" srcset="./assets/presentation/architecture-mobile-dark.svg">
+  <source media="(max-width: 600px)" srcset="./assets/presentation/architecture-mobile-light.svg">
+  <source media="(prefers-color-scheme: dark)" srcset="./assets/presentation/architecture-dark.svg">
+  <img src="./assets/presentation/architecture-light.svg" width="960" alt="Architecture diagram">
 </picture>
 
-One captured tool-call trace + one tool schema flow into the invariant evaluator (`valid_json` / `required_fields` / `arg_types` / `no_schema_drift`), which emits per-invariant pass/fail with the minimal failing evidence. m1 isolates this primitive from any network call — feed it a saved trace.
+The CLI loads trace and schema JSON, selects the first tool call, and evaluates valid_json, required_fields, arg_types and no_schema_drift. The report prints evidence per rule. Any failed rule, including a warning-level drift, returns a nonzero exit.
 
-## Contents
+| Component | Responsibility |
+| --- | --- |
+| `Trace + schema` | cmd/check.go |
+| `Schema parser` | internal/invariant |
+| `Four invariants` | internal/invariant/checks.go |
+| `Evidence table` | CLI stdout and exit code |
 
-- [Why Invary](#why-invary)
-- [Install & Quickstart](#install--quickstart)
-- [Usage](#usage)
-- [Demo](#demo)
-- [Configuration](#configuration)
-- [Roadmap](#roadmap)
-- [FAQ](#faq)
-- [License & Contributing](#license--contributing)
+## Install and quickstart
 
-<h2><img src="https://api.iconify.design/tabler:bolt.svg?color=%230071E3&width=24" height="22" align="absmiddle" alt=""> Why Invary</h2>
-
-Swapping a coding agent between DeepSeek, Qwen, Kimi and GLM today is done blind: each model emits tool-call JSON in a subtly different shape, honors JSON mode differently, and nothing runs **the same prompt + tool schema** across the four and reports which model silently violates a contract the others keep. After a blind swap the tool-call JSON that was valid on model A silently breaks on model B (extra quoting, a renamed `arguments`, wrapped vs. raw JSON), and the agent either crashes or invokes a tool with the wrong arguments. Invary is the differential oracle — **your own invariant set is the ground truth; no learned oracle required**.
-
-<h2><img src="https://api.iconify.design/tabler:rocket.svg?color=%230071E3&width=24" height="22" align="absmiddle" alt=""> Install & Quickstart</h2>
-
-Single binary, no runtime, no account. m1's `invary check` evaluates saved traces only — **no API key required**.
+Build with the version declared in the repository manifest. Run the example from the repository root.
 
 ```bash
-git clone https://github.com/SuperMarioYL/invary && cd invary
-go run . check --trace examples/sample_kimi_output.json --schema examples/tool-schema.json
+git clone https://github.com/SuperMarioYL/invary.git
+cd invary
+go build .
 ```
 
-<details><summary>Sample output</summary>
+The script checks two complete bundled synthetic traces and verifies the expected success and rejection exit codes.
 
+```bash
+python3 examples/presentation-demo.py
 ```
-trace:   examples/sample_kimi_output.json
+
+## Recorded demo
+
+<picture>
+  <source media="(max-width: 600px) and (prefers-color-scheme: dark)" srcset="./assets/presentation/process-mobile-dark.svg">
+  <source media="(max-width: 600px)" srcset="./assets/presentation/process-mobile-light.svg">
+  <source media="(prefers-color-scheme: dark)" srcset="./assets/presentation/process-dark.svg">
+  <img src="./assets/presentation/process-light.svg" width="960" alt="Process diagram">
+</picture>
+
+One fixture passes all four checks; the other fails no_schema_drift on the extra timezone field.
+
+```text
+trace:   examples/sample_deepseek_output.json
 schema:  examples/tool-schema.json
 tool:    get_weather
-args:    {'location': 'Tokyo', 'unit': 'celsius'}
+args:    {"location":"Tokyo","unit":"celsius"}
 
 INVARIANT        SEV      STATE  EVIDENCE
-valid_json       error    ✗ FAIL  arguments is not valid JSON: invalid character '\'' looking for beginning of object key string
-required_fields  error    ✗ FAIL  arguments is not valid JSON (see valid_json)
-arg_types        error    ✗ FAIL  arguments is not valid JSON (see valid_json)
-no_schema_drift  warn     ✗ FAIL  arguments is not valid JSON (see valid_json)
+valid_json       error    ✓ pass -
+required_fields  error    ✓ pass -
+arg_types        error    ✓ pass -
+no_schema_drift  warn     ✓ pass -
 
-0 pass / 4 fail
+4 pass / 0 fail
+command exit: 0
+trace:   examples/sample_glm_output.json
+schema:  examples/tool-schema.json
+tool:    get_weather
+args:    {"location":"Tokyo","timezone":"Asia/Tokyo"}
+
+INVARIANT        SEV      STATE  EVIDENCE
+valid_json       error    ✓ pass -
+required_fields  error    ✓ pass -
+arg_types        error    ✓ pass -
+no_schema_drift  warn     ✗ FAIL undeclared argument field(s): timezone
+
+3 pass / 1 fail
+command exit: 1
 ```
 
-Swap to `examples/sample_deepseek_output.json` and all four pass; swap to `examples/sample_glm_output.json` and only `no_schema_drift` fails (an extra `timezone` field the schema does not declare).
-</details>
+The complete command and output are recorded in [docs/demo-results.json](./docs/demo-results.json). Inputs and reproduction code are included in the repository.
 
-To install globally: `go install .` (then use `invary check ...` directly).
+![Existing terminal recording](./assets/demo.gif)
 
-<h2><img src="https://api.iconify.design/tabler:terminal-2.svg?color=%230071E3&width=24" height="22" align="absmiddle" alt=""> Usage</h2>
+The existing recording is retained for context; the text example above documents the reproducible scenario.
 
-`invary check` is the m1 entry point: read one captured tool-call trace + one tool schema, run the four built-in invariants, and print per-invariant pass/fail with the minimal failing evidence. The trace may be a full chat-completions response, an assistant message with `tool_calls`, a bare `tool_call` object, or a minimal `{"arguments":...}` object.
+## Usage
+
+The CLI exposes the following operations. Commands after the example use your own paths or identifiers.
 
 ```bash
-# A silent break: arguments is not valid JSON (single-quoted pseudo-JSON)
-invary check --trace examples/sample_kimi_output.json --schema examples/tool-schema.json
-
-# A fully conforming trace: all four pass
-invary check --trace examples/sample_deepseek_output.json --schema examples/tool-schema.json
-
-# Schema drift: an extra field the schema does not declare
-invary check --trace examples/sample_glm_output.json --schema examples/tool-schema.json
+go run . check --trace examples/sample_deepseek_output.json --schema examples/tool-schema.json
+go run . check --trace examples/sample_glm_output.json --schema examples/tool-schema.json
 ```
 
-Exit code is non-zero on any invariant failure, so `invary check` can gate a pipeline. `severity` signals how to triage (`error` hard, `warn` drift); the exit code only reflects "did every invariant pass".
+## Configuration
 
-> The other subcommands are skeletons for later milestones: `invary run` (m2, live differential across the four providers) and `invary init` (m3, writes `invariants.yaml` + copies the example schema) return a "not available" notice in this build.
+--trace and --schema are required for check. The four rules are built in and no API key or configuration file is needed. Warn severity affects triage; it does not make a failed rule pass the gate.
 
-<h2><img src="https://api.iconify.design/tabler:photo.svg?color=%230071E3&width=24" height="22" align="absmiddle" alt=""> Demo</h2>
+## Integrations and responsibilities
 
-![demo](assets/demo.gif)
+<picture>
+  <source media="(max-width: 600px) and (prefers-color-scheme: dark)" srcset="./assets/presentation/integrations-mobile-dark.svg">
+  <source media="(max-width: 600px)" srcset="./assets/presentation/integrations-mobile-light.svg">
+  <source media="(prefers-color-scheme: dark)" srcset="./assets/presentation/integrations-dark.svg">
+  <img src="./assets/presentation/integrations-light.svg" width="960" alt="Integrations diagram">
+</picture>
 
-The 10-minute happy path: `git clone` → `go run . check` → see the differential evidence. `docs/demo.tape` is a replayable [vhs](https://github.com/charmbracelet/vhs) script; `.github/workflows/demo.yml` re-renders `assets/demo.gif` on demand.
+The following routes are implemented in the source. Choose the input that matches your task and keep the resulting artifact with your project.
 
-<h2><img src="https://api.iconify.design/tabler:adjustments.svg?color=%230071E3&width=24" height="22" align="absmiddle" alt=""> Configuration</h2>
+| Route | Implemented role |
+| --- | --- |
+| Captured JSON | Full response or tool-call object |
+| Tool schema | Declared properties and required fields |
+| Terminal report | Rule verdicts and evidence |
+| Exit status | Pipeline failure signal |
 
-m1 needs no config file — `invary check` always runs the four built-in invariants, the schema comes via `--schema` and the trace via `--trace`.
+## Limits and next steps
 
-These environment variables are needed by `invary run` (m2) for the live differential run; m1 does not use them:
+- check evaluates only the first tool call in a response. It is not a complete JSON Schema implementation.
+- run and init remain milestone stubs; this release does not perform a live multi-provider differential run.
+- Provider names in fixtures identify example files, not measured provider reliability.
 
-| Variable | Meaning |
-|---|---|
-| `DEEPSEEK_API_KEY` | DeepSeek API key |
-| `QWEN_API_KEY` | Qwen (DashScope) API key |
-| `KIMI_API_KEY` | Kimi (Moonshot) API key |
-| `GLM_API_KEY` | GLM (Zhipu) API key |
+Live multi-provider comparison and configurable invariant loading are future milestones. Saved-response checking is the implemented workflow.
 
-The four providers' OpenAI-compatible base URLs and default model ids are built-in defaults in `internal/model/provider.go` — no config needed. A custom invariant set (`invariants.yaml`) is scaffolded by m3's `invary init`; the DSL shape is documented in `examples/invariants.yaml`.
+## License and contributions
 
-<h2><img src="https://api.iconify.design/tabler:map-2.svg?color=%230071E3&width=24" height="22" align="absmiddle" alt=""> Roadmap</h2>
-
-- [x] **m1** invariant DSL + 4 contract checks (`valid_json` / `required_fields` / `arg_types` / `no_schema_drift`) + single-trace evaluator, demonstrable via `invary check`
-- [ ] **m2** four-provider OpenAI-compatible client + diff runner + differential table with silent-breaker flags, demonstrable via `invary run`
-- [ ] **m3** `invary init` writes `invariants.yaml` + copies example schema + README hero differential table + VHS demo GIF + goreleaser + Gitee mirror
-- [ ] Future: generative PBT (random schema fuzzing to *find* the break, not just check) / single-model version regression / CI wrapper packaging
-
-<h2><img src="https://api.iconify.design/tabler:help-circle.svg?color=%230071E3&width=24" height="22" align="absmiddle" alt=""> FAQ</h2>
-
-**Isn't this just promptfoo with a different name?** No. promptfoo compares answer *quality*; Invary compares tool-call *contract conformance* (valid JSON / arg types / schema drift) — a different axis a quality-eval tool has no incentive to specialize in. The `silent-breaker` flag (passes on 3, fails on 1) is unique to the differential frame.
-
-**Why not just run my own 4 curl calls?** You get 4 outputs. Invary's value is the invariant evaluator + silent-breaker detection — bisecting which of 4 models broke which invariant by hand is the chore this removes.
-
-**Won't the providers just converge on OpenAI's tool-calling spec and kill this?** Our top risk. If they do, Invary pivots to single-model *version-bump regression* (does your provider keep the contract across releases), which survives harmonization.
-
-**Why only CN models?** Because the per-model tool-call JSON quirks of the CN set are the specific surface no global eval tool specializes in. GPT/Claude is a v0.2 non-goal.
-
-<h2><img src="https://api.iconify.design/tabler:license.svg?color=%230071E3&width=24" height="22" align="absmiddle" alt=""> License & Contributing</h2>
-
-MIT — see [LICENSE](./LICENSE). Found a problem or want to contribute? Open an [issue](https://github.com/SuperMarioYL/invary/issues) or PR. `go test ./...` guards the invariant evaluator.
-
-<p align="center"><sub><a href="./LICENSE">MIT</a> © 2026 SuperMarioYL</sub></p>
+See [LICENSE](./LICENSE). When reporting an issue, include a minimal input, the command, and the observed output.

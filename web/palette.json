@@ -1,0 +1,38 @@
+{
+  "mode": "auto",
+  "id": "c756e6-e76abf-cbacf6-c59b22021e62",
+  "identity": "https://github.com/supermarioyl/invary",
+  "primary": "#c756e6",
+  "secondary": "#e76abf",
+  "highlight": "#cbacf6",
+  "dark": {
+    "bg": "#090712",
+    "panel": "#12101f",
+    "code": "#120d1d",
+    "ink": "#f5eefd",
+    "muted": "#ac9cc4",
+    "line": "#331841",
+    "primary": "#c756e6",
+    "secondary": "#e76abf",
+    "highlight": "#cbacf6",
+    "accent": "#c756e6",
+    "buttonStart": "#ae4bca",
+    "buttonEnd": "#b55396",
+    "buttonText": "#ffffff"
+  },
+  "light": {
+    "bg": "#fdf9fe",
+    "panel": "#fcf7fe",
+    "code": "#fbf3fd",
+    "ink": "#231630",
+    "muted": "#6c5e88",
+    "line": "#eecbf7",
+    "primary": "#a548bf",
+    "secondary": "#ad4f8f",
+    "highlight": "#7b6995",
+    "accent": "#a548bf",
+    "buttonStart": "#ae4bca",
+    "buttonEnd": "#b55396",
+    "buttonText": "#ffffff"
+  }
+}

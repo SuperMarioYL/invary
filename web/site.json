@@ -1,74 +1,215 @@
 {
-  "schema": 1,
+  "schema": 3,
   "name": "invary",
   "github": "https://github.com/SuperMarioYL/invary",
   "host": "invary.lei6393.com",
-  "lang": { "primary": "zh", "toggle": true },
-  "accent": ["#0071E3", "#4d9bff", "#34e5d0"],
+  "palette": "auto",
+  "lang": {
+    "primary": "en",
+    "toggle": true
+  },
+  "meta": {
+    "visual_style": "neon-particle",
+    "demo_source": "docs/demo-results.json"
+  },
   "hero": {
-    "eyebrow": { "zh": "本地 · 无账号 · 单二进制", "en": "Local · No account · Single binary" },
     "headline": {
-      "zh": "换模型之前\n先看清谁会静默崩掉",
-      "en": "Before you switch models\nsee which one silently breaks"
+      "en": "Find tool-call contract breaks in saved responses.",
+      "zh": "从保存的响应中找出工具调用违约。"
     },
     "sub": {
-      "zh": "同一份 prompt + 工具 schema 跑过四个国产模型，立刻报告谁违反了工具调用契约——不需要学习型预言机，你写的不变量就是标准。",
-      "en": "Run the same prompt + tool schema across four Chinese models and instantly see which one silently violates the tool-call contract — no learned oracle needed, your invariants are the ground truth."
+      "en": "Invary checks a captured tool call against four explicit invariants and reports the failing evidence locally.",
+      "zh": "Invary 在本地按四项明确不变量检查捕获的工具调用，并输出失败证据。"
     },
-    "command": "invary check --trace trace.json --schema schema.json"
+    "href": "#quickstart"
   },
   "advantages": [
     {
       "title": {
-        "zh": "一眼看到哪个模型违约",
-        "en": "See which model breaks at a glance"
+        "en": "Offline reproduction",
+        "zh": "离线复现"
       },
       "body": {
-        "zh": "同一份轨迹 + schema 喂给四个不变量检查器，逐条输出通过/失败和最小证据。不需要跑完全部才知道——哪条挂了、挂在哪个模型上一目了然。",
-        "en": "Feed one trace + schema to four invariant checkers and get per-check pass/fail with minimal evidence. No need to run everything first — which check failed and on which model is visible immediately."
-      },
-      "chips": [
-        "› valid_json / required_fields / arg_types / no_schema_drift",
-        "› DeepSeek · Qwen · Kimi · GLM"
-      ]
+        "en": "A saved trace and schema are sufficient.",
+        "zh": "保存的轨迹与 schema 即可运行。"
+      }
     },
     {
       "title": {
-        "zh": "你的不变量就是标准",
-        "en": "Your invariants are the standard"
+        "en": "Specific failure evidence",
+        "zh": "具体失败证据"
       },
       "body": {
-        "zh": "不需要训练预言机或收集标注数据——你写的不变量规则就是 ground truth。简单、确定、可审计。",
-        "en": "No need to train an oracle or collect labeled data — the invariant rules you write ARE the ground truth. Simple, deterministic, auditable."
-      },
-      "chips": [
-        "› 零学习型预言机",
-        "› 纯规则，纯确定性"
-      ]
+        "en": "Each invariant names the violated contract.",
+        "zh": "每个不变量指出违反的契约。"
+      }
     },
     {
       "title": {
-        "zh": "一条命令，无需 API key",
-        "en": "One command, no API key"
+        "en": "Scriptable gate",
+        "zh": "可脚本化门禁"
       },
       "body": {
-        "zh": "m1 只评估保存好的轨迹文件，不需要联网，不需要账号。CI 里也能跑——切了模型就跑一遍，挂了就挡住合并。",
-        "en": "m1 evaluates saved trace files only — no network, no account needed. Runs in CI too: switch a model, run it, and block the merge if it fails."
+        "en": "Failed checks return a nonzero status.",
+        "zh": "失败检查返回非零状态。"
+      }
+    }
+  ],
+  "demo": {
+    "title": {
+      "en": "Run it on a complete example",
+      "zh": "运行完整示例"
+    },
+    "note": {
+      "en": "The script checks two complete bundled synthetic traces and verifies the expected success and rejection exit codes.",
+      "zh": "脚本检查两份完整随仓合成轨迹，并核验预期的成功与拒绝退出码。"
+    },
+    "source": "https://github.com/SuperMarioYL/invary/blob/main/docs/demo-results.json",
+    "steps": [
+      {
+        "label": "Recorded run",
+        "body": "Two bundled synthetic traces checked against the bundled schema. Fixture names are labels, not a live comparison of model providers; an expected schema-drift rejection is included.",
+        "command": "python3 examples/presentation-demo.py",
+        "output": "trace:   examples/sample_deepseek_output.json\nschema:  examples/tool-schema.json\ntool:    get_weather\nargs:    {\"location\":\"Tokyo\",\"unit\":\"celsius\"}\n\nINVARIANT        SEV      STATE  EVIDENCE\nvalid_json       error    ✓ pass -\nrequired_fields  error    ✓ pass -\narg_types        error    ✓ pass -\nno_schema_drift  warn     ✓ pass -\n\n4 pass / 0 fail\ncommand exit: 0\ntrace:   examples/sample_glm_output.json\nschema:  examples/tool-schema.json\ntool:    get_weather\nargs:    {\"location\":\"Tokyo\",\"timezone\":\"Asia/Tokyo\"}\n\nINVARIANT        SEV      STATE  EVIDENCE\nvalid_json       error    ✓ pass -\nrequired_fields  error    ✓ pass -\narg_types        error    ✓ pass -\nno_schema_drift  warn     ✗ FAIL undeclared argument field(s): timezone\n\n3 pass / 1 fail\ncommand exit: 1",
+        "image": "/assets/presentation/demo-0-light.svg",
+        "imageDark": "/assets/presentation/demo-0-dark.svg"
+      }
+    ]
+  },
+  "quickstart": {
+    "title": {
+      "en": "Try it locally",
+      "zh": "本地上手"
+    },
+    "body": {
+      "en": "The script checks two complete bundled synthetic traces and verifies the expected success and rejection exit codes.",
+      "zh": "脚本检查两份完整随仓合成轨迹，并核验预期的成功与拒绝退出码。"
+    },
+    "steps": [
+      {
+        "title": {
+          "en": "Install from source",
+          "zh": "从源码安装"
+        },
+        "code": "git clone https://github.com/SuperMarioYL/invary.git\ncd invary\ngo build ."
       },
-      "chips": [
-        "› go run . check",
-        "› CI 集成就绪"
-      ]
+      {
+        "title": {
+          "en": "Run the included example",
+          "zh": "运行随仓示例"
+        },
+        "code": "python3 examples/presentation-demo.py"
+      }
+    ]
+  },
+  "limitations": [
+    {
+      "en": "check evaluates only the first tool call in a response. It is not a complete JSON Schema implementation.",
+      "zh": "check 只检查响应中的第一个工具调用，不是完整 JSON Schema 实现。"
+    },
+    {
+      "en": "run and init remain milestone stubs; this release does not perform a live multi-provider differential run.",
+      "zh": "run 和 init 仍为里程碑占位，当前版本不执行在线多提供方差分运行。"
+    },
+    {
+      "en": "Provider names in fixtures identify example files, not measured provider reliability.",
+      "zh": "fixture 中的提供方名称只是文件标签，不代表实测可靠性。"
     }
   ],
   "scene": {
-    "kind": "hub-nodes",
-    "nodes": ["DeepSeek", "Qwen", "Kimi", "GLM"]
+    "kind": "neon-graph",
+    "fallback": "/assets/presentation/scene-dark.svg",
+    "fallbackLight": "/assets/presentation/scene-light.svg"
   },
-  "footer": {
-    "tag": {
-      "zh": "MIT 开源 · 把模型替换从盲赌变成可度量的决策",
-      "en": "MIT open source · Turn model substitution from blind gambling into a measurable decision"
-    }
+  "story": {
+    "intro": {
+      "title": {
+        "en": "A concrete task",
+        "zh": "从实际任务出发"
+      },
+      "body": {
+        "en": "A response can look plausible yet omit a required argument, use the wrong type, or invent a field. A saved response and tool schema make these failures reproducible without another model request.",
+        "zh": "响应看似合理，也可能缺少必填参数、类型错误或多出字段。保存响应与工具 schema 后，无需再次请求模型即可复现这些问题。"
+      }
+    },
+    "sections": [
+      {
+        "title": {
+          "en": "Follow the operation",
+          "zh": "处理过程"
+        },
+        "body": {
+          "en": "The CLI loads trace and schema JSON, selects the first tool call, and evaluates valid_json, required_fields, arg_types and no_schema_drift. The report prints evidence per rule. Any failed rule, including a warning-level drift, returns a nonzero exit.",
+          "zh": "CLI 加载轨迹与 schema JSON，选择第一个工具调用，检查 valid_json、required_fields、arg_types 和 no_schema_drift。报告逐规则输出证据；任一失败都会非零退出，包括警告级的字段漂移。"
+        },
+        "image": {
+          "light": "/assets/presentation/process-light.svg",
+          "dark": "/assets/presentation/process-dark.svg",
+          "alt": {
+            "en": "Follow the operation",
+            "zh": "处理过程"
+          }
+        }
+      },
+      {
+        "title": {
+          "en": "How Invary works",
+          "zh": "Invary 的工作方式"
+        },
+        "body": {
+          "en": "The CLI loads trace and schema JSON, selects the first tool call, and evaluates valid_json, required_fields, arg_types and no_schema_drift. The report prints evidence per rule. Any failed rule, including a warning-level drift, returns a nonzero exit.",
+          "zh": "CLI 加载轨迹与 schema JSON，选择第一个工具调用，检查 valid_json、required_fields、arg_types 和 no_schema_drift。报告逐规则输出证据；任一失败都会非零退出，包括警告级的字段漂移。"
+        },
+        "image": {
+          "light": "/assets/presentation/architecture-light.svg",
+          "dark": "/assets/presentation/architecture-dark.svg",
+          "alt": {
+            "en": "How Invary works",
+            "zh": "Invary 的工作方式"
+          }
+        }
+      },
+      {
+        "title": {
+          "en": "Connect the pieces",
+          "zh": "输入与输出"
+        },
+        "body": {
+          "en": "The following routes are implemented in the source. Choose the input that matches your task and keep the resulting artifact with your project.",
+          "zh": "以下路径已有源码实现。按任务选择输入，并把生成的结果与项目一起保存。"
+        },
+        "image": {
+          "light": "/assets/presentation/integrations-light.svg",
+          "dark": "/assets/presentation/integrations-dark.svg",
+          "alt": {
+            "en": "Connect the pieces",
+            "zh": "输入与输出"
+          }
+        }
+      }
+    ],
+    "details": [
+      {
+        "title": {
+          "en": "Configuration",
+          "zh": "配置"
+        },
+        "body": {
+          "en": "--trace and --schema are required for check. The four rules are built in and no API key or configuration file is needed. Warn severity affects triage; it does not make a failed rule pass the gate.",
+          "zh": "check 必须提供 --trace 和 --schema。四条规则内置，无需 API 密钥或配置文件。warn 级别用于分诊，不会让失败规则通过门禁。"
+        }
+      },
+      {
+        "title": {
+          "en": "Further use",
+          "zh": "进一步使用"
+        },
+        "body": {
+          "en": "The CLI exposes the following operations. Commands after the example use your own paths or identifiers.",
+          "zh": "CLI 提供以下操作。示例之外的命令需要替换成你的文件路径或标识。"
+        },
+        "code": "go run . check --trace examples/sample_deepseek_output.json --schema examples/tool-schema.json\ngo run . check --trace examples/sample_glm_output.json --schema examples/tool-schema.json"
+      }
+    ]
   }
 }

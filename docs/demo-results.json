@@ -1,0 +1,13 @@
+{
+  "schema": 1,
+  "source_revision": "dec06b8c3f01d28d707248e217e7a40a950a6cb4",
+  "scope": "Two bundled synthetic traces checked against the bundled schema. Fixture names are labels, not a live comparison of model providers; an expected schema-drift rejection is included.",
+  "steps": [
+    {
+      "label": "Recorded run",
+      "body": "Two bundled synthetic traces checked against the bundled schema. Fixture names are labels, not a live comparison of model providers; an expected schema-drift rejection is included.",
+      "command": "python3 examples/presentation-demo.py",
+      "output": "trace:   examples/sample_deepseek_output.json\nschema:  examples/tool-schema.json\ntool:    get_weather\nargs:    {\"location\":\"Tokyo\",\"unit\":\"celsius\"}\n\nINVARIANT        SEV      STATE  EVIDENCE\nvalid_json       error    ✓ pass -\nrequired_fields  error    ✓ pass -\narg_types        error    ✓ pass -\nno_schema_drift  warn     ✓ pass -\n\n4 pass / 0 fail\ncommand exit: 0\ntrace:   examples/sample_glm_output.json\nschema:  examples/tool-schema.json\ntool:    get_weather\nargs:    {\"location\":\"Tokyo\",\"timezone\":\"Asia/Tokyo\"}\n\nINVARIANT        SEV      STATE  EVIDENCE\nvalid_json       error    ✓ pass -\nrequired_fields  error    ✓ pass -\narg_types        error    ✓ pass -\nno_schema_drift  warn     ✗ FAIL undeclared argument field(s): timezone\n\n3 pass / 1 fail\ncommand exit: 1"
+    }
+  ]
+}
