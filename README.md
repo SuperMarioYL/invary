@@ -108,11 +108,16 @@ CLI 提供以下操作。示例之外的命令需要替换成你的文件路径�
 ```bash
 go run . check --trace examples/sample_deepseek_output.json --schema examples/tool-schema.json
 go run . check --trace examples/sample_glm_output.json --schema examples/tool-schema.json
+go run . init
 ```
+
+`invary init` 在当前目录写出 `invariants.yaml` 与 `tool-schema.json` 起始文件（与 `examples/` 同源），已有同名文件时直接拒绝，不做任何覆盖。
 
 ## 配置
 
 check 必须提供 --trace 和 --schema。四条规则内置，无需 API 密钥或配置文件。warn 级别用于分诊，不会让失败规则通过门禁。
+
+`invary init`（v0.2.0 起）落盘的 `invariants.yaml` 记录不变量 DSL 形状，供自定义契约集参考；`check` 本身不读取该文件。
 
 ## 集成与职责分工
 
@@ -135,7 +140,7 @@ check 必须提供 --trace 和 --schema。四条规则内置，无需 API 密钥
 ## 限制与后续方向
 
 - check 只检查响应中的第一个工具调用，不是完整 JSON Schema 实现。
-- run 和 init 仍为里程碑占位，当前版本不执行在线多提供方差分运行。
+- run 仍为里程碑占位，当前版本不执行在线多提供方差分运行；init（v0.2.0 起）已在本地可用。
 - fixture 中的提供方名称只是文件标签，不代表实测可靠性。
 
 实时多提供方比较和可配置不变量加载属于后续里程碑，当前实现的是保存响应检查。

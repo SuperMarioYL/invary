@@ -8,10 +8,10 @@ package model
 // client swaps only baseURL + apiKey + modelID per provider — no per-provider
 // SDK, no version drift.
 type Provider struct {
-	Name     string // canonical id: deepseek | qwen | kimi | glm
-	Label    string // human-readable label
-	BaseURL  string // OpenAI-compatible base URL (no trailing slash)
-	ModelID  string // default chat model id for the differential run
+	Name      string // canonical id: deepseek | qwen | kimi | glm
+	Label     string // human-readable label
+	BaseURL   string // OpenAI-compatible base URL (no trailing slash)
+	ModelID   string // default chat model id for the differential run
 	APIKeyEnv string // environment variable holding the provider api key
 }
 

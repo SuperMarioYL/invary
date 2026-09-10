@@ -2,8 +2,10 @@ package invariant
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -297,6 +299,23 @@ func TestParseTraceShapes(t *testing.T) {
 			t.Errorf("minimal arguments should still parse: %v (got %q)", err, calls[0].Arguments)
 		}
 	})
+	t.Run("minimal wire-string arguments unwrap like tool_calls", func(t *testing.T) {
+		// The OpenAI wire shape encodes arguments as a JSON string whose value
+		// is the args JSON; the minimal shape must normalize identically to
+		// the tool_calls shape. v0.1.0 kept the quoted raw bytes and the
+		// structural checks then false-failed with "parsed to string".
+		data := []byte(`{"arguments":"{\"location\":\"Tokyo\"}"}`)
+		calls, err := ParseTrace(data)
+		if err != nil {
+			t.Fatalf("ParseTrace: %v", err)
+		}
+		if len(calls) != 1 {
+			t.Fatalf("calls = %+v", calls)
+		}
+		if calls[0].Arguments != `{"location":"Tokyo"}` {
+			t.Fatalf("arguments = %q, want unwrapped inner JSON {\"location\":\"Tokyo\"}", calls[0].Arguments)
+		}
+	})
 	t.Run("empty trace errors", func(t *testing.T) {
 		if _, err := ParseTrace([]byte{}); err == nil {
 			t.Fatalf("expected error on empty trace")
@@ -307,6 +326,27 @@ func TestParseTraceShapes(t *testing.T) {
 			t.Fatalf("expected error when no tool_calls present")
 		}
 	})
+}
+
+// TestEvalMinimalStringArgumentsConforms pins the v0.1.0 false-breach fix: a
+// conforming arguments set saved in the minimal wire-string shape evaluated to
+// 1 pass / 3 fail; it must evaluate identically to any other accepted shape.
+func TestEvalMinimalStringArgumentsConforms(t *testing.T) {
+	sch := schemaFor(map[string]string{"location": "string", "unit": "string"}, "location", "unit")
+	data := []byte(`{"arguments":"{\"location\":\"Tokyo\",\"unit\":\"celsius\"}"}`)
+	calls, err := ParseTrace(data)
+	if err != nil {
+		t.Fatalf("ParseTrace: %v", err)
+	}
+	results := Eval(calls[0], sch)
+	pass, fail := Summary(results)
+	if pass != 4 || fail != 0 {
+		var b strings.Builder
+		for _, r := range results {
+			fmt.Fprintf(&b, "%s pass=%v ev=%q; ", r.Invariant, r.Pass, r.Evidence)
+		}
+		t.Fatalf("summary = %d pass / %d fail, want 4/0 (results: %s)", pass, fail, b.String())
+	}
 }
 
 // TestExampleFiles exercises the shipped examples end-to-end through the same
@@ -329,7 +369,7 @@ func TestExampleFiles(t *testing.T) {
 	}{
 		{"sample_deepseek_output.json", 4, 0}, // conforming baseline
 		{"sample_qwen_output.json", 4, 0},     // conforming (required-only)
-		{"sample_kimi_output.json", 0, 4},      // invalid JSON -> all blocked
+		{"sample_kimi_output.json", 0, 4},     // invalid JSON -> all blocked
 		{"sample_glm_output.json", 3, 1},      // schema drift -> only drift fails
 	}
 	for _, c := range cases {

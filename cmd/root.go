@@ -10,7 +10,7 @@ import (
 // Version is the semantic version of the invary binary. It is overridable at
 // build time via -ldflags "-X github.com/SuperMarioYL/invary/cmd.Version=…"
 // and otherwise tracks the repo VERSION file.
-var Version = "0.1.0"
+var Version = "0.2.0"
 
 const rootLong = `Invary — 国产大模型工具调用契约差分测试器
 
@@ -29,6 +29,10 @@ var rootCmd = &cobra.Command{
 	Long:  rootLong,
 	// root has no Run of its own; subcommands carry the behavior.
 	CompletionOptions: cobra.CompletionOptions{DisableDefaultCmd: true},
+	// Cobra prints "Error: …" itself unless silenced; Execute() below already
+	// prints the single canonical error line, so without this every CLI error
+	// appeared twice on stderr.
+	SilenceErrors: true,
 }
 
 func init() {

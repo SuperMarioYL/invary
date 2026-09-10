@@ -108,11 +108,16 @@ The CLI exposes the following operations. Commands after the example use your ow
 ```bash
 go run . check --trace examples/sample_deepseek_output.json --schema examples/tool-schema.json
 go run . check --trace examples/sample_glm_output.json --schema examples/tool-schema.json
+go run . init
 ```
+
+`invary init` writes an `invariants.yaml` and `tool-schema.json` starter set (the same files as `examples/`) into the current directory; it refuses instead of overwriting existing files.
 
 ## Configuration
 
 --trace and --schema are required for check. The four rules are built in and no API key or configuration file is needed. Warn severity affects triage; it does not make a failed rule pass the gate.
+
+The `invariants.yaml` written by `invary init` (since v0.2.0) documents the invariant DSL shape for customizing the contract set; `check` itself does not read that file.
 
 ## Integrations and responsibilities
 
@@ -135,7 +140,7 @@ The following routes are implemented in the source. Choose the input that matche
 ## Limits and next steps
 
 - check evaluates only the first tool call in a response. It is not a complete JSON Schema implementation.
-- run and init remain milestone stubs; this release does not perform a live multi-provider differential run.
+- run remains a milestone stub; this release does not perform a live multi-provider differential run. init (since v0.2.0) works locally.
 - Provider names in fixtures identify example files, not measured provider reliability.
 
 Live multi-provider comparison and configurable invariant loading are future milestones. Saved-response checking is the implemented workflow.

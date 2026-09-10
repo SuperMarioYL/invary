@@ -26,10 +26,10 @@ const (
 
 // Identifier is the canonical name of a built-in invariant.
 const (
-	IDValidJSON       = "valid_json"
-	IDRequiredFields  = "required_fields"
-	IDArgTypes        = "arg_types"
-	IDNoSchemaDrift   = "no_schema_drift"
+	IDValidJSON      = "valid_json"
+	IDRequiredFields = "required_fields"
+	IDArgTypes       = "arg_types"
+	IDNoSchemaDrift  = "no_schema_drift"
 )
 
 // Invariant is one user-designated contract check.
@@ -63,9 +63,9 @@ type Breach struct {
 // here because it is the canonical shape of the core primitive; the m2 diff
 // runner populates it.
 type DifferentialReport struct {
-	Invariants []Invariant                  `json:"invariants"`
-	Results    map[string]map[string]bool   `json:"results"` // provider -> invariantID -> pass
-	Breaches   []Breach                     `json:"breaches"`
+	Invariants []Invariant                `json:"invariants"`
+	Results    map[string]map[string]bool `json:"results"` // provider -> invariantID -> pass
+	Breaches   []Breach                   `json:"breaches"`
 }
 
 // ToolCall is the minimal tool-call shape extracted from a provider trace. The
@@ -73,9 +73,9 @@ type DifferentialReport struct {
 // in the chat-completions response (before any normalization).
 type ToolCall struct {
 	ID        string `json:"id,omitempty"`
-	Type      string `json:"type,omitempty"`       // typically "function"
-	Name      string `json:"name"`                  // function.name
-	Arguments string `json:"arguments"`             // function.arguments (raw JSON string)
+	Type      string `json:"type,omitempty"` // typically "function"
+	Name      string `json:"name"`           // function.name
+	Arguments string `json:"arguments"`      // function.arguments (raw JSON string)
 }
 
 // ParamSpec is the declared contract for one schema parameter.
@@ -187,7 +187,7 @@ func ParseTrace(data []byte) ([]ToolCall, error) {
 	var resp struct {
 		Choices []struct {
 			Message struct {
-				Role      string      `json:"role"`
+				Role      string        `json:"role"`
 				ToolCalls []rawToolCall `json:"tool_calls"`
 			} `json:"message"`
 		} `json:"choices"`
@@ -227,7 +227,7 @@ func ParseTrace(data []byte) ([]ToolCall, error) {
 		Arguments json.RawMessage `json:"arguments"`
 	}
 	if err := json.Unmarshal(data, &minimal); err == nil && len(minimal.Arguments) > 0 {
-		return []ToolCall{{Arguments: string(minimal.Arguments)}}, nil
+		return []ToolCall{{Arguments: unwrapArguments(minimal.Arguments)}}, nil
 	}
 
 	return nil, fmt.Errorf("trace has no tool_calls: expected a chat-completions response, a tool_calls message, or a tool_call object")
@@ -244,22 +244,26 @@ type rawToolCall struct {
 }
 
 func (r rawToolCall) toToolCall() ToolCall {
-	// arguments is normally a JSON-encoded string whose VALUE is itself the args
-	// JSON (OpenAI shape: "arguments": "{\"location\":\"Tokyo\"}"). Unwrap one
-	// layer so downstream checks reason about the model's actual output rather
-	// than a doubly-encoded string. If unwrap fails the raw bytes are kept, and
-	// every check will root-cause to valid_json — exactly the silent breaker case.
-	args := string(r.Function.Arguments)
-	var inner string
-	if err := json.Unmarshal(r.Function.Arguments, &inner); err == nil {
-		args = inner
-	}
 	return ToolCall{
 		ID:        r.ID,
 		Type:      r.Type,
 		Name:      r.Function.Name,
-		Arguments: args,
+		Arguments: unwrapArguments(r.Function.Arguments),
 	}
+}
+
+// unwrapArguments normalizes the raw wire value of a tool call's arguments.
+// The OpenAI shape encodes arguments as a JSON string whose VALUE is itself
+// the args JSON ("arguments": "{\"location\":\"Tokyo\"}"); unwrap one layer so
+// every accepted trace shape reasons about the model's actual output rather
+// than a doubly-encoded string. If unwrap fails the raw bytes are kept, and
+// every check will root-cause to valid_json — exactly the silent breaker case.
+func unwrapArguments(raw json.RawMessage) string {
+	var inner string
+	if err := json.Unmarshal(raw, &inner); err == nil {
+		return inner
+	}
+	return string(raw)
 }
 
 // ParseSchema parses an OpenAI-compatible function/tool schema into the minimal
@@ -290,8 +294,8 @@ func ParseSchema(data []byte) (Schema, error) {
 	}
 
 	sch := Schema{
-		Name:     fn.Name,
-		Required: fn.Parameters.Required,
+		Name:       fn.Name,
+		Required:   fn.Parameters.Required,
 		Properties: make(map[string]ParamSpec, len(fn.Parameters.Properties)),
 	}
 	// Sort property names for deterministic iteration in the checks.

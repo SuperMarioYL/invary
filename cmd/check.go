@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"unicode/utf8"
 
 	"github.com/SuperMarioYL/invary/internal/invariant"
 	"github.com/spf13/cobra"
@@ -82,6 +83,20 @@ func runCheck(cmd *cobra.Command, _ []string) error {
 	return nil
 }
 
+// truncatePreview caps s at maxBytes total, cutting on a UTF-8 rune boundary
+// and appending "..." for whatever was dropped. A byte-wise cut would split a
+// multi-byte rune (e.g. a Chinese city name) and print invalid UTF-8.
+func truncatePreview(s string, maxBytes int) string {
+	if len(s) <= maxBytes {
+		return s
+	}
+	cut := maxBytes - len("...")
+	for cut > 0 && !utf8.RuneStart(s[cut]) {
+		cut-- // back off to the start of the rune we would have split
+	}
+	return s[:cut] + "..."
+}
+
 // printCheckReport writes the per-invariant table + tally to stdout.
 func printCheckReport(cmd *cobra.Command, tc invariant.ToolCall, sch invariant.Schema, results []invariant.Result) {
 	out := cmd.OutOrStdout()
@@ -93,12 +108,7 @@ func printCheckReport(cmd *cobra.Command, tc invariant.ToolCall, sch invariant.S
 		fmt.Fprintf(out, "tool:    %s\n", sch.Name)
 	}
 	if tc.Arguments != "" {
-		// Keep the evidence scannable: cap the raw arguments preview.
-		preview := tc.Arguments
-		if len(preview) > 80 {
-			preview = preview[:77] + "..."
-		}
-		fmt.Fprintf(out, "args:    %s\n", preview)
+		fmt.Fprintf(out, "args:    %s\n", truncatePreview(tc.Arguments, 80))
 	}
 	fmt.Fprintln(out)
 	fmt.Fprintf(out, "%-16s %-8s %-6s %s\n", "INVARIANT", "SEV", "STATE", "EVIDENCE")

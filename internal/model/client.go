@@ -9,7 +9,7 @@ import "fmt"
 // shape is in place; the live implementation lands in milestone m2.
 type Client struct {
 	Provider Provider
-	APIKey  string
+	APIKey   string
 }
 
 // Call sends the prompt + tool schema to the provider and returns the raw

@@ -21,7 +21,7 @@ flags — the model that broke a contract its peers kept.
 This command is milestone m2 work and is not yet wired to the providers in
 this build. Use 'invary check' to evaluate a single captured trace against
 the invariants today.`,
-	Example: "  invary run --prompt \"What's the weather in Tokyo?\" --schema examples/tool-schema.json",
+	Example:      "  invary run --prompt \"What's the weather in Tokyo?\" --schema examples/tool-schema.json",
 	SilenceUsage: true,
 	RunE: func(_ *cobra.Command, _ []string) error {
 		// Flags are accepted so the documented surface is stable; the live
@@ -32,7 +32,7 @@ the invariants today.`,
 }
 
 var (
-	runPrompt  string
+	runPrompt     string
 	runSchemaPath string
 )
 
