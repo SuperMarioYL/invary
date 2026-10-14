@@ -4,6 +4,30 @@ All notable changes to Invary are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2026-10-14
+
+### Fixed
+
+- The GitHub release for a tag shipped zero downloadable assets: no release
+  workflow existed, so the "download a release binary" install path was dead.
+  A goreleaser release workflow now builds and attaches per-platform archives
+  (`darwin`/`linux`/`windows` × `amd64`/`arm64`, tar.gz with zip for windows)
+  plus a sha256 `checksums.txt` on every `v*.*.*` tag push; the `VERSION` file
+  is packed into each archive and the binary version is injected via
+  `-X …cmd.Version` so artifacts and `invary --version` agree.
+- `invary check` on a trace file that is not valid JSON (e.g. a truncated
+  copy-paste from provider logs) reported a false "trace has no tool_calls"
+  diagnosis instead of the JSON syntax error. `invary check` now reports
+  `trace is not valid JSON: …` — the same root-causing the schema path already
+  applied. Valid-but-unrecognized JSON keeps the previous shape error.
+
+### Changed
+
+- Version surfaces bumped in lockstep to 0.3.0 (`VERSION` file,
+  `invary --version`, this changelog) and the website (`web/site.json`) now
+  carries a `meta.content_version` surface too, covered by the same
+  version-consistency test.
+
 ## [0.2.0] - 2026-09-10
 
 ### Fixed

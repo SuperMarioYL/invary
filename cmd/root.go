@@ -10,7 +10,7 @@ import (
 // Version is the semantic version of the invary binary. It is overridable at
 // build time via -ldflags "-X github.com/SuperMarioYL/invary/cmd.Version=…"
 // and otherwise tracks the repo VERSION file.
-var Version = "0.2.0"
+var Version = "0.3.0"
 
 const rootLong = `Invary — 国产大模型工具调用契约差分测试器
 

@@ -67,6 +67,27 @@ func TestTruncatePreviewLongCJKStaysValidUTF8(t *testing.T) {
 	}
 }
 
+// TestCheckInvalidJSONReportsSyntaxNotShape pins the v0.3.0 diagnosis fix at
+// the CLI boundary: a trace file that is not valid JSON must produce the
+// syntax error, not v0.2.0's false "trace has no tool_calls" shape diagnosis.
+func TestCheckInvalidJSONReportsSyntaxNotShape(t *testing.T) {
+	tracePath := filepath.Join(t.TempDir(), "truncated.json")
+	if err := os.WriteFile(tracePath, []byte(`{"choices":[{"mess`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	rootCmd.SetArgs([]string{"check", "--trace", tracePath, "--schema", filepath.Join("..", "examples", "tool-schema.json")})
+	err := rootCmd.Execute()
+	if err == nil {
+		t.Fatalf("expected an error for a truncated (invalid JSON) trace")
+	}
+	if !strings.Contains(err.Error(), "not valid JSON") {
+		t.Fatalf("error should name the JSON syntax failure, got %q", err)
+	}
+	if strings.Contains(err.Error(), "no tool_calls") {
+		t.Fatalf("error must not misreport broken syntax as a shape problem, got %q", err)
+	}
+}
+
 // TestCheckReportValidUTF8OnCJKArgs runs the real check command on a trace
 // whose arguments exceed the preview cap with CJK content and asserts the
 // whole report is valid UTF-8 (v0.1.0 emitted a lone 0xE4 byte).

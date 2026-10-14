@@ -1,0 +1,50 @@
+version: 2
+
+project_name: invary
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - id: invary
+    main: ./
+    binary: invary
+    env:
+      - CGO_ENABLED=0
+    goos: [linux, darwin, windows]
+    goarch: [amd64, arm64]
+    ldflags:
+      - -s -w -X github.com/SuperMarioYL/invary/cmd.Version={{.Version}}
+
+archives:
+  - id: default
+    ids: [invary]
+    name_template: >-
+      {{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}
+    format: tar.gz
+    format_overrides:
+      - goos: windows
+        format: zip
+    files:
+      - LICENSE
+      - README.md
+      - README.en.md
+      - VERSION
+      - examples/*
+
+checksum:
+  name_template: 'checksums.txt'
+  algorithm: sha256
+
+snapshot:
+  name_template: "{{ incpatch .Version }}-next"
+
+changelog:
+  use: github
+  sort: asc
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
+      - '^chore:'

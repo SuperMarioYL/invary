@@ -328,6 +328,41 @@ func TestParseTraceShapes(t *testing.T) {
 	})
 }
 
+// TestParseTraceInvalidJSONNamesSyntax reproduces the v0.2.0 misdiagnosis: a
+// file that is not valid JSON used to fall through every shape probe and was
+// reported as "trace has no tool_calls" — a false shape diagnosis. The error
+// must name the JSON syntax failure, like ParseSchema does for schemas.
+func TestParseTraceInvalidJSONNamesSyntax(t *testing.T) {
+	for _, data := range []string{
+		`not json`,
+		`{"choices":[{"mess`, // truncated capture, e.g. cut-off curl output
+	} {
+		_, err := ParseTrace([]byte(data))
+		if err == nil {
+			t.Fatalf("ParseTrace(%q): expected an error", data)
+		}
+		if !strings.Contains(err.Error(), "not valid JSON") {
+			t.Errorf("ParseTrace(%q) error = %q, want it to name the JSON syntax failure", data, err)
+		}
+		if strings.Contains(err.Error(), "no tool_calls") {
+			t.Errorf("ParseTrace(%q) error = %q, must not misreport broken syntax as a shape problem", data, err)
+		}
+	}
+}
+
+// TestParseTraceValidScalarKeepsShapeError guards the m9 fix against
+// over-reach: input that IS valid JSON but matches no accepted shape keeps
+// the existing "no tool_calls" shape error verbatim.
+func TestParseTraceValidScalarKeepsShapeError(t *testing.T) {
+	_, err := ParseTrace([]byte(`"just a string"`))
+	if err == nil {
+		t.Fatalf("expected the shape error for a valid JSON scalar")
+	}
+	if !strings.Contains(err.Error(), "no tool_calls") {
+		t.Fatalf("valid-but-unrecognized JSON should keep the shape error, got %q", err)
+	}
+}
+
 // TestEvalMinimalStringArgumentsConforms pins the v0.1.0 false-breach fix: a
 // conforming arguments set saved in the minimal wire-string shape evaluated to
 // 1 pass / 3 fail; it must evaluate identically to any other accepted shape.

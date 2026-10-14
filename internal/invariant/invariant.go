@@ -183,6 +183,15 @@ func ParseTrace(data []byte) ([]ToolCall, error) {
 		return nil, fmt.Errorf("trace is empty")
 	}
 
+	// Syntax gate before the shape probes: without it, an unparseable file
+	// falls through every probe and is misreported as a shape problem ("no
+	// tool_calls") instead of the actual JSON syntax error — the same
+	// root-causing the schema parser applies (ParseSchema).
+	var anyJSON any
+	if err := json.Unmarshal(data, &anyJSON); err != nil {
+		return nil, fmt.Errorf("trace is not valid JSON: %w", err)
+	}
+
 	// Full chat-completions response.
 	var resp struct {
 		Choices []struct {
