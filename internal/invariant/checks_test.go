@@ -447,3 +447,140 @@ func exampleRoot(t *testing.T) string {
 	t.Fatal("could not locate examples/ relative to test")
 	return ""
 }
+
+// TestParseSchemaToolsArray pins the v0.3.0 rejection of the shape every OpenAI
+// request actually carries: the tools array used to fail with a raw Go type
+// error instead of yielding the function definition.
+func TestParseSchemaToolsArray(t *testing.T) {
+	data := []byte(`[{"type":"function","function":{"name":"get_weather","parameters":{"type":"object","properties":{"location":{"type":"string"},"unit":{"type":"string"}},"required":["location"]}}}]`)
+	sch, err := ParseSchema(data)
+	if err != nil {
+		t.Fatalf("ParseSchema(tools array): %v", err)
+	}
+	if sch.Name != "get_weather" {
+		t.Errorf("name = %q, want get_weather", sch.Name)
+	}
+	if len(sch.Required) != 1 || sch.Required[0] != "location" {
+		t.Errorf("required = %v, want [location]", sch.Required)
+	}
+	if sch.Properties["location"].Type != "string" || sch.Properties["unit"].Type != "string" {
+		t.Errorf("properties = %v", sch.Properties)
+	}
+}
+
+// TestParseSchemaRequestBody reproduces the silent-empty-contract defect: a
+// saved chat-completions request body used to parse as a Schema with no
+// properties and no error, so required_fields and arg_types passed vacuously
+// while no_schema_drift invented drift evidence for every argument.
+func TestParseSchemaRequestBody(t *testing.T) {
+	data := []byte(`{"model":"deepseek-chat","messages":[],"tools":[{"type":"function","function":{"name":"get_weather","parameters":{"type":"object","properties":{"location":{"type":"string"}},"required":["location"]}}}]}`)
+	sch, err := ParseSchema(data)
+	if err != nil {
+		t.Fatalf("ParseSchema(request body): %v", err)
+	}
+	if sch.Name != "get_weather" || len(sch.Properties) != 1 || len(sch.Required) != 1 {
+		t.Fatalf("schema = %+v, want get_weather with one property and one required field", sch)
+	}
+}
+
+// TestParseSchemaEmptyAndNonSchemaRejected keeps an empty contract from passing
+// as a valid one: input that declares no function must be an error, not a
+// zero-value Schema.
+func TestParseSchemaEmptyAndNonSchemaRejected(t *testing.T) {
+	for _, data := range []string{
+		`{}`,
+		`{"model":"deepseek-chat"}`,
+		`{"tools":[]}`,
+		`{"choices":[{"message":{"role":"assistant"}}]}`,
+	} {
+		sch, err := ParseSchema([]byte(data))
+		if err == nil {
+			t.Errorf("ParseSchema(%s) = %+v, want an error (no function definition)", data, sch)
+			continue
+		}
+		if !strings.Contains(err.Error(), "no function") && !strings.Contains(err.Error(), "empty") {
+			t.Errorf("ParseSchema(%s) error = %q, want it to name the missing function definition", data, err)
+		}
+	}
+}
+
+// TestParseSchemaShapesAgree pins that every accepted container resolves to the
+// same contract for the shipped example schema.
+func TestParseSchemaShapesAgree(t *testing.T) {
+	root := exampleRoot(t)
+	raw, err := os.ReadFile(filepath.Join(root, "examples", "tool-schema.json"))
+	if err != nil {
+		t.Fatalf("read example schema: %v", err)
+	}
+	var doc struct {
+		Function json.RawMessage `json:"function"`
+	}
+	if err := json.Unmarshal(raw, &doc); err != nil {
+		t.Fatalf("parse example schema: %v", err)
+	}
+	shapes := map[string][]byte{
+		"wrapped":      raw,
+		"bare":         doc.Function,
+		"tools array":  append(append([]byte("["), raw...), ']'),
+		"request body": append(append([]byte(`{"model":"m","tools":[`), raw...), []byte("]}")...),
+	}
+	want, err := ParseSchema(raw)
+	if err != nil {
+		t.Fatalf("ParseSchema(wrapped): %v", err)
+	}
+	for name, data := range shapes {
+		got, err := ParseSchema(data)
+		if err != nil {
+			t.Errorf("%s: ParseSchema: %v", name, err)
+			continue
+		}
+		if got.Name != want.Name || len(got.Required) != len(want.Required) || len(got.Properties) != len(want.Properties) {
+			t.Errorf("%s: schema = %+v, want %+v", name, got, want)
+		}
+		for prop, spec := range want.Properties {
+			if got.Properties[prop].Type != spec.Type {
+				t.Errorf("%s: property %s type = %q, want %q", name, prop, got.Properties[prop].Type, spec.Type)
+			}
+		}
+	}
+}
+
+// TestParseTraceResponseWithoutToolCallsNamesTheMissingCall pins the remaining
+// shape-confusion path: a prose-only chat-completions response is a model-side
+// finding, not an unrecognized file format.
+func TestParseTraceResponseWithoutToolCallsNamesTheMissingCall(t *testing.T) {
+	data := []byte(`{"choices":[{"message":{"role":"assistant","content":"I cannot help with that."},"finish_reason":"stop"}]}`)
+	_, err := ParseTrace(data)
+	if err == nil {
+		t.Fatalf("expected an error for a response with no tool call")
+	}
+	msg := err.Error()
+	if !strings.Contains(msg, "no tool_calls") || !strings.Contains(msg, "answered with content") {
+		t.Fatalf("error = %q, want it to name the missing call and the content-only answer", msg)
+	}
+	if !strings.Contains(msg, `finish_reason "stop"`) {
+		t.Errorf("error = %q, want the provider finish_reason included", msg)
+	}
+	if strings.Contains(msg, "expected a chat-completions response") {
+		t.Errorf("error = %q, must not claim the document is not a chat-completions response", msg)
+	}
+}
+
+// TestParseTraceBareAssistantMessageWithoutToolCalls accepts the same diagnosis
+// for the bare assistant-message shape ParseTrace documents.
+func TestParseTraceBareAssistantMessageWithoutToolCalls(t *testing.T) {
+	_, err := ParseTrace([]byte(`{"role":"assistant","content":"no tool needed"}`))
+	if err == nil || !strings.Contains(err.Error(), "answered with content") {
+		t.Fatalf("error = %v, want the content-only diagnosis for a bare assistant message", err)
+	}
+}
+
+// TestParseTraceEmptyChoicesKeepsShapeError guards the new diagnosis against
+// over-reach: a response with no choice at all has no call and no
+// finish_reason, so it keeps the generic shape error.
+func TestParseTraceEmptyChoicesKeepsShapeError(t *testing.T) {
+	_, err := ParseTrace([]byte(`{"choices":[]}`))
+	if err == nil || !strings.Contains(err.Error(), "expected a chat-completions response") {
+		t.Fatalf("error = %v, want the unchanged shape error for an empty choices array", err)
+	}
+}

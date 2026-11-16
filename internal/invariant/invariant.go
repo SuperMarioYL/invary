@@ -239,7 +239,35 @@ func ParseTrace(data []byte) ([]ToolCall, error) {
 		return []ToolCall{{Arguments: unwrapArguments(minimal.Arguments)}}, nil
 	}
 
+	// A chat-completions response whose message carries no tool_calls is a
+	// model-side finding — the model answered instead of calling the tool — not
+	// an unrecognized file shape. Name the missing call instead of blaming the
+	// format, the same root-causing m9 applied to broken JSON syntax.
+	var chat struct {
+		Choices []struct {
+			FinishReason string `json:"finish_reason"`
+		} `json:"choices"`
+	}
+	if err := json.Unmarshal(data, &chat); err == nil && len(chat.Choices) > 0 {
+		return nil, fmt.Errorf("trace contains no tool_calls: %s", noCallReason(chat.Choices[0].FinishReason))
+	}
+	var assistant struct {
+		Role string `json:"role"`
+	}
+	if err := json.Unmarshal(data, &assistant); err == nil && assistant.Role == "assistant" {
+		return nil, fmt.Errorf("trace contains no tool_calls: %s", noCallReason(""))
+	}
+
 	return nil, fmt.Errorf("trace has no tool_calls: expected a chat-completions response, a tool_calls message, or a tool_call object")
+}
+
+// noCallReason states why an assistant response carried no tool call, including
+// the provider's finish_reason when it was recorded.
+func noCallReason(finishReason string) string {
+	if finishReason == "" {
+		return "the model answered with content instead of calling the tool"
+	}
+	return fmt.Sprintf("the model answered with content instead of calling the tool (finish_reason %q)", finishReason)
 }
 
 // rawToolCall is the wire shape of an OpenAI-compatible tool_call.
@@ -276,19 +304,34 @@ func unwrapArguments(raw json.RawMessage) string {
 }
 
 // ParseSchema parses an OpenAI-compatible function/tool schema into the minimal
-// Schema the checks reason about. The "type":"function" wrapper is optional.
+// Schema the checks reason about. It accepts the containers a dev is likely to
+// save: a single tool object ({"type":"function","function":{…}}), a bare
+// function object ({name, parameters}), the OpenAI tools array
+// ([{"type":"function","function":{…}}]), or a chat-completions request body
+// carrying a tools array. When a list is given, the first tool is used.
 func ParseSchema(data []byte) (Schema, error) {
 	if len(data) == 0 {
 		return Schema{}, fmt.Errorf("schema is empty")
 	}
 
-	// Accept {"type":"function","function":{...}} or a bare function object.
-	var wrapped struct {
-		Function json.RawMessage `json:"function"`
+	fnBytes, err := resolveFunction(data)
+	if err != nil {
+		return Schema{}, err
 	}
-	var fnBytes json.RawMessage = data
-	if err := json.Unmarshal(data, &wrapped); err == nil && len(wrapped.Function) > 0 {
-		fnBytes = wrapped.Function
+
+	// The resolved document must actually declare a function. Without this
+	// gate any JSON object parses into a zero-value Schema: required_fields and
+	// arg_types then pass vacuously while no_schema_drift reports every real
+	// argument as an undeclared field.
+	var defined struct {
+		Name       json.RawMessage `json:"name"`
+		Parameters json.RawMessage `json:"parameters"`
+	}
+	if err := json.Unmarshal(fnBytes, &defined); err != nil {
+		return Schema{}, fmt.Errorf("parse schema: %w", err)
+	}
+	if len(defined.Name) == 0 && len(defined.Parameters) == 0 {
+		return Schema{}, fmt.Errorf(`schema declares no function: expected {"type":"function","function":{…}}, {"name":…,"parameters":…}, or an OpenAI tools array`)
 	}
 
 	var fn struct {
@@ -319,6 +362,50 @@ func ParseSchema(data []byte) (Schema, error) {
 		sch.Properties[name] = ps
 	}
 	return sch, nil
+}
+
+// resolveFunction locates the function definition inside the accepted schema
+// containers: a single tool object, a bare function object, an OpenAI tools
+// array, or a request body carrying a tools array.
+func resolveFunction(data []byte) (json.RawMessage, error) {
+	var doc struct {
+		Function json.RawMessage   `json:"function"`
+		Tools    []json.RawMessage `json:"tools"`
+	}
+	if err := json.Unmarshal(data, &doc); err == nil {
+		switch {
+		case len(doc.Function) > 0:
+			return doc.Function, nil
+		case len(doc.Tools) > 0:
+			return firstToolFunction(doc.Tools)
+		default:
+			return data, nil // a bare function object
+		}
+	}
+
+	var tools []json.RawMessage
+	if err := json.Unmarshal(data, &tools); err == nil {
+		return firstToolFunction(tools)
+	}
+	return nil, fmt.Errorf("schema is neither a JSON object nor an OpenAI tools array")
+}
+
+// firstToolFunction unwraps the function definition from the first entry of a
+// tools list; an array of bare function definitions is returned as-is.
+func firstToolFunction(tools []json.RawMessage) (json.RawMessage, error) {
+	if len(tools) == 0 {
+		return nil, fmt.Errorf("schema tools array is empty: nothing to check against")
+	}
+	var tool struct {
+		Function json.RawMessage `json:"function"`
+	}
+	if err := json.Unmarshal(tools[0], &tool); err != nil {
+		return nil, fmt.Errorf("parse schema: tools[0] is not a tool object: %w", err)
+	}
+	if len(tool.Function) > 0 {
+		return tool.Function, nil
+	}
+	return tools[0], nil
 }
 
 func sortedKeys(m map[string]json.RawMessage) []string {

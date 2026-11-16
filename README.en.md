@@ -30,7 +30,7 @@ A response can look plausible yet omit a required argument, use the wrong type, 
   <img src="./assets/presentation/architecture-light.svg" width="960" alt="Architecture diagram">
 </picture>
 
-The CLI loads trace and schema JSON, selects the first tool call, and evaluates valid_json, required_fields, arg_types and no_schema_drift. The report prints evidence per rule. Any failed rule, including a warning-level drift, returns a nonzero exit.
+The CLI loads trace and schema JSON, evaluates every tool call in the trace (valid_json, required_fields, arg_types and no_schema_drift). The report prints evidence per rule. Any failed rule, including a warning-level drift, returns a nonzero exit.
 
 | Component | Responsibility |
 | --- | --- |
@@ -139,8 +139,8 @@ The following routes are implemented in the source. Choose the input that matche
 
 ## Limits and next steps
 
-- check evaluates only the first tool call in a response. It is not a complete JSON Schema implementation.
-- run remains a milestone stub; this release does not perform a live multi-provider differential run. init (since v0.2.0) works locally.
+- check evaluates every tool call in a response; the rules themselves are not a complete JSON Schema implementation.
+- run is the only remaining stub; this release does not perform a live multi-provider differential run. init (since v0.2.0) works locally.
 - Provider names in fixtures identify example files, not measured provider reliability.
 
 Live multi-provider comparison and configurable invariant loading are future milestones. Saved-response checking is the implemented workflow.

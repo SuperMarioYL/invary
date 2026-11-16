@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"unicode/utf8"
 
@@ -69,17 +70,29 @@ func runCheck(cmd *cobra.Command, _ []string) error {
 	if len(calls) == 0 {
 		return fmt.Errorf("trace contains no tool call to evaluate")
 	}
-	tc := calls[0] // m1 evaluates a single trace; multiple calls are m2's concern
 
-	results := invariant.Eval(tc, sch)
-	printCheckReport(cmd, tc, sch, results)
+	out := cmd.OutOrStdout()
+	fmt.Fprintf(out, "trace:   %s\n", checkTracePath)
+	fmt.Fprintf(out, "schema:  %s\n", checkSchemaPath)
 
-	pass, fail := invariant.Summary(results)
-	if fail > 0 {
-		// Non-zero exit on any breach so 'invary check' can gate a pipeline.
-		os.Exit(1)
+	// Every tool call in the trace is a contract candidate: gating on only the
+	// first one let a response with a conforming first call and a broken second
+	// call report 4 pass / 0 fail and exit 0.
+	breaching := 0
+	for i, tc := range calls {
+		results := invariant.Eval(tc, sch)
+		printCallReport(out, i, len(calls), tc, sch, results)
+		if _, fail := invariant.Summary(results); fail > 0 {
+			breaching++
+		}
 	}
-	_ = pass
+	if len(calls) > 1 {
+		fmt.Fprintf(out, "%d of %d tool calls breached a contract\n", breaching, len(calls))
+	}
+	if breaching > 0 {
+		// Non-zero exit on any breach so 'invary check' can gate a pipeline.
+		return errContractBreach
+	}
 	return nil
 }
 
@@ -97,11 +110,17 @@ func truncatePreview(s string, maxBytes int) string {
 	return s[:cut] + "..."
 }
 
-// printCheckReport writes the per-invariant table + tally to stdout.
-func printCheckReport(cmd *cobra.Command, tc invariant.ToolCall, sch invariant.Schema, results []invariant.Result) {
-	out := cmd.OutOrStdout()
-	fmt.Fprintf(out, "trace:   %s\n", checkTracePath)
-	fmt.Fprintf(out, "schema:  %s\n", checkSchemaPath)
+// printCallReport writes one call's tool/args header, per-invariant table and
+// tally. A trace with several calls labels each section so a breach can be
+// attributed to the call that produced it; a single-call trace keeps the
+// original report layout byte-for-byte.
+func printCallReport(out io.Writer, index, total int, tc invariant.ToolCall, sch invariant.Schema, results []invariant.Result) {
+	if total > 1 {
+		if index > 0 {
+			fmt.Fprintln(out)
+		}
+		fmt.Fprintf(out, "call %d/%d\n", index+1, total)
+	}
 	if tc.Name != "" {
 		fmt.Fprintf(out, "tool:    %s\n", tc.Name)
 	} else if sch.Name != "" {

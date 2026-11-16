@@ -52,6 +52,32 @@ func TestVersionLockstep(t *testing.T) {
 		t.Fatalf("CHANGELOG.md has no ## [%s] section", Version)
 	}
 
+	// The checked-in dist/ archives embed the binary that reports the version,
+	// so they belong to the same lockstep. Skipped when dist/ is absent (the
+	// goreleaser release job clears it); a tracked tree always carries it.
+	if entries, err := os.ReadDir(filepath.Join("..", "dist")); err == nil {
+		want := "invary_" + Version + "_"
+		archives := 0
+		for _, e := range entries {
+			if e.IsDir() || e.Name() == "checksums.txt" {
+				continue
+			}
+			if !strings.HasPrefix(e.Name(), want) {
+				t.Errorf("dist/%s does not carry version %s", e.Name(), Version)
+			}
+			archives++
+		}
+		if archives > 0 {
+			checksums, err := os.ReadFile(filepath.Join("..", "dist", "checksums.txt"))
+			if err != nil {
+				t.Fatalf("read dist/checksums.txt: %v", err)
+			}
+			if got := strings.Count(string(checksums), want); got != archives {
+				t.Fatalf("dist/checksums.txt lists %d of %d archives", got, archives)
+			}
+		}
+	}
+
 	var out strings.Builder
 	rootCmd.SetOut(&out)
 	rootCmd.SetArgs([]string{"--version"})

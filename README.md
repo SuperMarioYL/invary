@@ -30,7 +30,7 @@ Invary 在本地按四项明确不变量检查捕获的工具调用，并输出�
   <img src="./assets/presentation/architecture-light.svg" width="960" alt="Architecture diagram">
 </picture>
 
-CLI 加载轨迹与 schema JSON，选择第一个工具调用，检查 valid_json、required_fields、arg_types 和 no_schema_drift。报告逐规则输出证据；任一失败都会非零退出，包括警告级的字段漂移。
+CLI 加载轨迹与 schema JSON，检查其中每一个工具调用（valid_json、required_fields、arg_types 和 no_schema_drift）。报告逐规则输出证据；任一失败都会非零退出，包括警告级的字段漂移。
 
 | 组件 | 职责 |
 | --- | --- |
@@ -139,8 +139,8 @@ check 必须提供 --trace 和 --schema。四条规则内置，无需 API 密钥
 
 ## 限制与后续方向
 
-- check 只检查响应中的第一个工具调用，不是完整 JSON Schema 实现。
-- run 仍为里程碑占位，当前版本不执行在线多提供方差分运行；init（v0.2.0 起）已在本地可用。
+- check 逐个检查响应中的每个工具调用，但其中的规则不是完整 JSON Schema 实现。
+- run 是唯一仍为占位符的命令，当前版本不执行在线多提供方差分运行；init（v0.2.0 起）已在本地可用。
 - fixture 中的提供方名称只是文件标签，不代表实测可靠性。
 
 实时多提供方比较和可配置不变量加载属于后续里程碑，当前实现的是保存响应检查。

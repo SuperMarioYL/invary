@@ -4,6 +4,40 @@ All notable changes to Invary are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - 2026-11-17
+
+### Fixed
+
+- `invary check` scored only the first tool call in a response. Parallel tool
+  calls are the normal OpenAI-compatible shape, so a trace whose second call
+  broke the contract still printed `4 pass / 0 fail` and exited 0. Every tool
+  call in the trace is now evaluated; multi-call traces label each section
+  (`call N/M`), close with `N of M tool calls breached a contract`, and fail the
+  gate if any call breaches. The single-call report is unchanged.
+- Schema parsing accepted any JSON object as an empty contract: `--schema "{}"`
+  or a document with no function definition parsed successfully, then
+  `required_fields` and `arg_types` passed vacuously while `no_schema_drift`
+  reported every real argument as undeclared. A schema that declares no function
+  is now rejected with the accepted shapes named, while the OpenAI tools array
+  and a chat-completions request body (`{"tools":[…]}`) are accepted and resolve
+  to their first tool — the tools array used to fail with a raw Go type error.
+- A chat-completions response in which the model answered with content instead
+  of calling the tool was reported as an unrecognized file shape ("expected a
+  chat-completions response"). It now reports that the response carries no
+  tool call because the model answered with content, including the
+  `finish_reason` when recorded.
+
+### Changed
+
+- Documentation no longer contradicts the binary: the website stopped calling
+  `init` a milestone stub (it has worked since 0.2.0), the starter
+  `invariants.yaml` no longer promises custom invariant loading as a "v0.2+"
+  feature that never shipped, and the limits sections describe the new
+  every-tool-call evaluation.
+- Version surfaces bumped in lockstep to 0.4.0 (`VERSION`, `invary --version`,
+  this changelog, the website's `meta.content_version` and the checked-in
+  `dist/` release archives), all covered by the version-consistency test.
+
 ## [0.3.0] - 2026-10-14
 
 ### Fixed

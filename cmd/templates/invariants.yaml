@@ -3,7 +3,7 @@
 # This file documents the invariant DSL. 'invary init' (milestone m3) writes a
 # copy into your project so you can customize the contract set; 'invary check'
 # (milestone m1) always runs the built-in four below, with no config file
-# required for the happy path. Custom invariant loading is a v0.2+ feature.
+# required for the happy path. Loading a custom set is reserved for a future release.
 #
 # Each invariant has:
 #   id        — canonical name (one of the built-ins, or a future custom id)

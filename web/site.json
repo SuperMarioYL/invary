@@ -11,7 +11,7 @@
   "meta": {
     "visual_style": "neon-particle",
     "demo_source": "docs/demo-results.json",
-    "content_version": "0.3.0"
+    "content_version": "0.4.0"
   },
   "hero": {
     "headline": {
@@ -105,12 +105,12 @@
   },
   "limitations": [
     {
-      "en": "check evaluates only the first tool call in a response. It is not a complete JSON Schema implementation.",
-      "zh": "check 只检查响应中的第一个工具调用，不是完整 JSON Schema 实现。"
+      "en": "check evaluates every tool call in a response; the rules are not a complete JSON Schema implementation.",
+      "zh": "check 逐个检查响应中的每个工具调用，但规则不是完整 JSON Schema 实现。"
     },
     {
-      "en": "run and init remain milestone stubs; this release does not perform a live multi-provider differential run.",
-      "zh": "run 和 init 仍为里程碑占位，当前版本不执行在线多提供方差分运行。"
+      "en": "run remains a milestone stub; this release does not perform a live multi-provider differential run.",
+      "zh": "run 是唯一仍为占位符的命令，当前版本不执行在线多提供方差分运行。"
     },
     {
       "en": "Provider names in fixtures identify example files, not measured provider reliability.",
@@ -140,8 +140,8 @@
           "zh": "处理过程"
         },
         "body": {
-          "en": "The CLI loads trace and schema JSON, selects the first tool call, and evaluates valid_json, required_fields, arg_types and no_schema_drift. The report prints evidence per rule. Any failed rule, including a warning-level drift, returns a nonzero exit.",
-          "zh": "CLI 加载轨迹与 schema JSON，选择第一个工具调用，检查 valid_json、required_fields、arg_types 和 no_schema_drift。报告逐规则输出证据；任一失败都会非零退出，包括警告级的字段漂移。"
+          "en": "The CLI loads trace and schema JSON, evaluates every tool call, and checks valid_json, required_fields, arg_types and no_schema_drift. The report prints evidence per rule. Any failed rule, including a warning-level drift, returns a nonzero exit.",
+          "zh": "CLI 加载轨迹与 schema JSON，逐个检查每个工具调用，检查 valid_json、required_fields、arg_types 和 no_schema_drift。报告逐规则输出证据；任一失败都会非零退出，包括警告级的字段漂移。"
         },
         "image": {
           "light": "/assets/presentation/process-light.svg",
@@ -162,8 +162,8 @@
           "zh": "Invary 的工作方式"
         },
         "body": {
-          "en": "The CLI loads trace and schema JSON, selects the first tool call, and evaluates valid_json, required_fields, arg_types and no_schema_drift. The report prints evidence per rule. Any failed rule, including a warning-level drift, returns a nonzero exit.",
-          "zh": "CLI 加载轨迹与 schema JSON，选择第一个工具调用，检查 valid_json、required_fields、arg_types 和 no_schema_drift。报告逐规则输出证据；任一失败都会非零退出，包括警告级的字段漂移。"
+          "en": "The CLI loads trace and schema JSON, evaluates every tool call, and checks valid_json, required_fields, arg_types and no_schema_drift. The report prints evidence per rule. Any failed rule, including a warning-level drift, returns a nonzero exit.",
+          "zh": "CLI 加载轨迹与 schema JSON，逐个检查每个工具调用，检查 valid_json、required_fields、arg_types 和 no_schema_drift。报告逐规则输出证据；任一失败都会非零退出，包括警告级的字段漂移。"
         },
         "image": {
           "light": "/assets/presentation/architecture-light.svg",

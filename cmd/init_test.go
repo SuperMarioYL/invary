@@ -93,3 +93,29 @@ func TestInitRefusesOverwrite(t *testing.T) {
 		t.Fatalf("init must not write tool-schema.json when it refuses")
 	}
 }
+
+// TestDocsDoNotClaimInitIsAStub guards the shipped prose against the v0.3.0
+// contradiction: init has worked since v0.2.0, so no tracked doc may still list
+// it as a milestone stub.
+func TestDocsDoNotClaimInitIsAStub(t *testing.T) {
+	found, _, err := rootCmd.Find([]string{"init"})
+	if err != nil || found == nil || found.Name() != "init" {
+		t.Fatalf("initCmd must stay registered: %v", err)
+	}
+	for _, path := range []string{
+		filepath.Join("..", "web", "site.json"),
+		filepath.Join("..", "README.md"),
+		filepath.Join("..", "README.en.md"),
+	} {
+		raw, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatalf("read %s: %v", path, err)
+		}
+		text := string(raw)
+		for _, claim := range []string{"run and init remain milestone stubs", "run 和 init 仍为里程碑占位"} {
+			if strings.Contains(text, claim) {
+				t.Errorf("%s claims init is a stub (%q) although init is implemented", path, claim)
+			}
+		}
+	}
+}

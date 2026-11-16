@@ -1,16 +1,24 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"os"
 
 	"github.com/spf13/cobra"
 )
 
+// errContractBreach signals that 'invary check' found at least one invariant
+// breach. The report has already gone to stdout, so Execute() turns this into
+// exit status 1 without printing an extra error line — the same observable
+// behaviour as the report-then-exit path it replaces, now testable through
+// rootCmd instead of terminating the process inside RunE.
+var errContractBreach = errors.New("contract breach")
+
 // Version is the semantic version of the invary binary. It is overridable at
 // build time via -ldflags "-X github.com/SuperMarioYL/invary/cmd.Version=…"
 // and otherwise tracks the repo VERSION file.
-var Version = "0.3.0"
+var Version = "0.4.0"
 
 const rootLong = `Invary — 国产大模型工具调用契约差分测试器
 
@@ -43,8 +51,12 @@ func init() {
 // Execute runs the root command and translates a non-nil error into a
 // non-zero process exit code.
 func Execute() {
-	if err := rootCmd.Execute(); err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
+	err := rootCmd.Execute()
+	if err == nil {
+		return
 	}
+	if !errors.Is(err, errContractBreach) {
+		fmt.Fprintln(os.Stderr, err)
+	}
+	os.Exit(1)
 }
